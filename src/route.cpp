@@ -266,7 +266,7 @@ Route::Route(std::string source, bool isFileName, metres granularity)
     std::vector<std::string> elements ={"gpx","rte"};
     metres deltaH,deltaV;
     std::ostringstream oss,oss2;
-    unsigned int num;
+    unsigned int numPositions = 1;
     this->granularity = granularity;
     if (isFileName){
         std::ifstream fs(source);
@@ -289,9 +289,10 @@ Route::Route(std::string source, bool isFileName, metres granularity)
         routeName = XML::Parser::getElementContent(temp);
         oss << "Route name is: " << routeName << std::endl;
     }
-    num = 0;
+    /*
     if (! XML::Parser::elementExists(source,"rtept")) throw std::domain_error("No 'rtept' element.");
     temp = XML::Parser::getAndEraseElement(source, "rtept");
+
     if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
     if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
     lat = XML::Parser::getElementAttribute(temp, "lat");
@@ -300,23 +301,24 @@ Route::Route(std::string source, bool isFileName, metres granularity)
     if (XML::Parser::elementExists(temp, "ele")) {
         temp2 = XML::Parser::getElement(temp, "ele");
         ele = XML::Parser::getElementContent(temp2);
+        // Todo declare outside of scope
         Position startPos = Position(lat,lon,ele);
         positions.push_back(startPos);
         oss << "Position added: " << startPos.toString() << std::endl;
-        ++num;
     } else {
         Position startPos = Position(lat,lon);
         positions.push_back(startPos);
         oss << "Position added: " << startPos.toString() << std::endl;
-        ++num;
     }
     if (XML::Parser::elementExists(temp,"name")) {
         temp2 = XML::Parser::getElement(temp,"name");
         name = XML::Parser::getElementContent(temp2);
     }
     positionNames.push_back(name);
-    Position prevPos = positions.back(), nextPos = positions.back();
-    while (XML::Parser::elementExists(source, "rtept")) {
+    Position prevPos = positions.back();
+    Position nextPos = positions.back();
+    */
+    do {
         temp = XML::Parser::getAndEraseElement(source, "rtept");
         if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
         if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
@@ -326,24 +328,29 @@ Route::Route(std::string source, bool isFileName, metres granularity)
         if (XML::Parser::elementExists(temp, "ele")) {
             temp2 = XML::Parser::getElement(temp, "ele");
             ele = XML::Parser::getElementContent(temp2);
-            nextPos = Position(lat,lon,ele);
-        } else nextPos = Position(lat,lon);
-        if (areSameLocation(nextPos, prevPos)) oss << "Position ignored: " << nextPos.toString() << std::endl;
+            positions.push_back(Position(lat,lon,ele));
+        } else {
+            positions.push_back(Position(lat,lon));
+        }
+        std::cout << positions[positions.size()-1].lon << " " << positions[positions.size()-2].lon << std::endl;
+        if (positions.size() < 2 && areSameLocation(positions[positions.size()-1], positions[positions.size()-2])){
+            oss << "Position ignored: " << positions[positions.size()-1].toString() << std::endl;
+            positions.pop_back();
+        }
         else {
             if (XML::Parser::elementExists(temp,"name")) {
                 temp2 = XML::Parser::getElement(temp,"name");
                 name = XML::Parser::getElementContent(temp2);
             } else name = ""; // Fixed bug by adding this.
-            positions.push_back(nextPos);
             positionNames.push_back(name);
-            oss << "Position added: " << nextPos.toString() << std::endl;
-            ++num;
-            prevPos = nextPos;
+            oss << "Position added: " << positions[positions.size()-1].toString() << std::endl;
+            ++numPositions;
+            //prevPos = nextPos;
         }
-    }
-    oss << num << " positions added." << std::endl;
+    } while (XML::Parser::elementExists(source, "rtept"));
+    oss << numPositions << " positions added." << std::endl;
     routeLength = 0;
-    for (unsigned int i = 1; i < num; ++i ) {
+    for (unsigned int i = 1; i < numPositions; ++i ) {
         deltaH = Position::distanceBetween(positions[i-1], positions[i]);
         deltaV = positions[i-1].elevation() - positions[i].elevation();
         routeLength += sqrt(pow(deltaH,2) + pow(deltaV,2));
