@@ -263,6 +263,7 @@ std::string Route::buildReport() const
 Route::Route(std::string source, bool isFileName, metres granularity)
 {
     std::string lat,lon,ele,name,temp,temp2;
+    std::vector<std::string> elements ={"gpx","rte"};
     metres deltaH,deltaV;
     std::ostringstream oss,oss2;
     unsigned int num;
@@ -277,12 +278,12 @@ Route::Route(std::string source, bool isFileName, metres granularity)
         }
         source = oss2.str();
     }
-    if (! XML::Parser::elementExists(source,"gpx")) throw std::domain_error("No 'gpx' element.");
-    temp = XML::Parser::getElement(source, "gpx");
-    source = XML::Parser::getElementContent(temp);
-    if (! XML::Parser::elementExists(source,"rte")) throw std::domain_error("No 'rte' element.");
-    temp = XML::Parser::getElement(source, "rte");
-    source = XML::Parser::getElementContent(temp);
+    for (int i = 0; i < elements.size(); ++i) {
+        if (! XML::Parser::elementExists(source,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
+        temp = XML::Parser::getElement(source, elements[i]);
+        source = XML::Parser::getElementContent(temp);
+    }
+
     if (XML::Parser::elementExists(source, "name")) {
         temp = XML::Parser::getAndEraseElement(source, "name");
         routeName = XML::Parser::getElementContent(temp);
