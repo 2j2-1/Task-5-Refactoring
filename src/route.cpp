@@ -260,10 +260,10 @@ std::string Route::buildReport() const
     return report;
 }
 
-std::string checkErrors(std::string& fileData){
+std::string checkErrors(std::string& gpsData){
     std::string newPostion;
-    if (! XML::Parser::elementExists(fileData,"rtept")) throw std::domain_error("No 'rtept' element.");
-    newPostion = XML::Parser::getAndEraseElement(fileData, "rtept");
+    if (! XML::Parser::elementExists(gpsData,"rtept")) throw std::domain_error("No 'rtept' element.");
+    newPostion = XML::Parser::getAndEraseElement(gpsData, "rtept");
     if (! XML::Parser::attributeExists(newPostion,"lat")) throw std::domain_error("No 'lat' attribute.");
     if (! XML::Parser::attributeExists(newPostion,"lon")) throw std::domain_error("No 'lon' attribute.");
     return newPostion;
@@ -271,41 +271,40 @@ std::string checkErrors(std::string& fileData){
 
 Route::Route(std::string fileName, bool isFileName, metres granularity)
 {
-    std::string lat,lon,ele,name,temp,temp2,newPostion;
+    std::string lat,lon,ele,name,line,newPostion;
     std::vector<std::string> elements ={"gpx","rte"};
     metres deltaH,deltaV;
     std::ostringstream oss,oss2;
     unsigned int num;
     this->granularity = granularity;
     std::string fileData;
+    std::string gpsData;
 
     if (isFileName){
-        std::ifstream fs(fileName);
-        if (! fs.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
+        std::ifstream file(fileName);
+        if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
         oss << "Source file '" << fileName << "' opened okay." << std::endl;
-        while (fs.good()) {
-            getline(fs, temp);
-            oss2 << temp << std::endl;
+        while (file.good()) {
+            getline(file, line);
+            oss2 << line << std::endl;
         }
         fileData = oss2.str();
     }
 
     for (int i = 0; i < elements.size(); ++i) {
         if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
-        temp = XML::Parser::getElement(fileData, elements[i]);
-        fileData = XML::Parser::getElementContent(temp);
+        gpsData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements[i]));
     }
 
-    if (XML::Parser::elementExists(fileData, "name")) {
-        temp = XML::Parser::getAndEraseElement(fileData, "name");
-        routeName = XML::Parser::getElementContent(temp);
+    if (XML::Parser::elementExists(gpsData, "name")) {
+        routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));
         oss << "Route name is: " << routeName << std::endl;
     }
 
     num = 0;
 
-    while (XML::Parser::elementExists(fileData, "rtept")) {
-        newPostion = checkErrors(fileData);
+    while (XML::Parser::elementExists(gpsData, "rtept")) {
+        newPostion = checkErrors(gpsData);
         lat = XML::Parser::getElementAttribute(newPostion, "lat");
         lon = XML::Parser::getElementAttribute(newPostion, "lon");
         newPostion = XML::Parser::getElementContent(newPostion);
