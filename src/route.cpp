@@ -260,6 +260,15 @@ std::string Route::buildReport() const
     return report;
 }
 
+std::string checkErrors(std::string& fileData){
+    std::string temp;
+    if (! XML::Parser::elementExists(fileData,"rtept")) throw std::domain_error("No 'rtept' element.");
+    temp = XML::Parser::getAndEraseElement(fileData, "rtept");
+    if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
+    if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
+    return temp;
+}
+
 Route::Route(std::string fileName, bool isFileName, metres granularity)
 {
     std::string lat,lon,ele,name,temp,temp2;
@@ -292,10 +301,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         oss << "Route name is: " << routeName << std::endl;
     }
     num = 0;
-    if (! XML::Parser::elementExists(fileData,"rtept")) throw std::domain_error("No 'rtept' element.");
-    temp = XML::Parser::getAndEraseElement(fileData, "rtept");
-    if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
-    if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
+    temp = checkErrors(fileData);
     lat = XML::Parser::getElementAttribute(temp, "lat");
     lon = XML::Parser::getElementAttribute(temp, "lon");
     temp = XML::Parser::getElementContent(temp);
@@ -319,9 +325,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
     positionNames.push_back(name);
     Position prevPos = positions.back(), nextPos = positions.back();
     while (XML::Parser::elementExists(fileData, "rtept")) {
-        temp = XML::Parser::getAndEraseElement(fileData, "rtept");
-        if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
-        if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
+        temp = checkErrors(fileData);
         lat = XML::Parser::getElementAttribute(temp, "lat");
         lon = XML::Parser::getElementAttribute(temp, "lon");
         temp = XML::Parser::getElementContent(temp);
