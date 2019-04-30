@@ -261,17 +261,17 @@ std::string Route::buildReport() const
 }
 
 std::string checkErrors(std::string& fileData){
-    std::string temp;
+    std::string newPostion;
     if (! XML::Parser::elementExists(fileData,"rtept")) throw std::domain_error("No 'rtept' element.");
-    temp = XML::Parser::getAndEraseElement(fileData, "rtept");
-    if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
-    if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
-    return temp;
+    newPostion = XML::Parser::getAndEraseElement(fileData, "rtept");
+    if (! XML::Parser::attributeExists(newPostion,"lat")) throw std::domain_error("No 'lat' attribute.");
+    if (! XML::Parser::attributeExists(newPostion,"lon")) throw std::domain_error("No 'lon' attribute.");
+    return newPostion;
 }
 
 Route::Route(std::string fileName, bool isFileName, metres granularity)
 {
-    std::string lat,lon,ele,name,temp,temp2;
+    std::string lat,lon,ele,name,temp,temp2,newPostion;
     std::vector<std::string> elements ={"gpx","rte"};
     metres deltaH,deltaV;
     std::ostringstream oss,oss2;
@@ -289,6 +289,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         }
         fileData = oss2.str();
     }
+
     for (int i = 0; i < elements.size(); ++i) {
         if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
         temp = XML::Parser::getElement(fileData, elements[i]);
@@ -300,52 +301,34 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         routeName = XML::Parser::getElementContent(temp);
         oss << "Route name is: " << routeName << std::endl;
     }
+
     num = 0;
-    temp = checkErrors(fileData);
-    lat = XML::Parser::getElementAttribute(temp, "lat");
-    lon = XML::Parser::getElementAttribute(temp, "lon");
-    temp = XML::Parser::getElementContent(temp);
-    if (XML::Parser::elementExists(temp, "ele")) {
-        temp2 = XML::Parser::getElement(temp, "ele");
-        ele = XML::Parser::getElementContent(temp2);
-        Position startPos = Position(lat,lon,ele);
-        positions.push_back(startPos);
-        oss << "Position added: " << startPos.toString() << std::endl;
-        ++num;
-    } else {
-        Position startPos = Position(lat,lon);
-        positions.push_back(startPos);
-        oss << "Position added: " << startPos.toString() << std::endl;
-        ++num;
-    }
-    if (XML::Parser::elementExists(temp,"name")) {
-        temp2 = XML::Parser::getElement(temp,"name");
-        name = XML::Parser::getElementContent(temp2);
-    }
-    positionNames.push_back(name);
-    Position prevPos = positions.back(), nextPos = positions.back();
+
     while (XML::Parser::elementExists(fileData, "rtept")) {
-        temp = checkErrors(fileData);
-        lat = XML::Parser::getElementAttribute(temp, "lat");
-        lon = XML::Parser::getElementAttribute(temp, "lon");
-        temp = XML::Parser::getElementContent(temp);
-        if (XML::Parser::elementExists(temp, "ele")) {
-            temp2 = XML::Parser::getElement(temp, "ele");
-            ele = XML::Parser::getElementContent(temp2);
-            nextPos = Position(lat,lon,ele);
-        } else nextPos = Position(lat,lon);
-        if (areSameLocation(nextPos, prevPos)) oss << "Position ignored: " << nextPos.toString() << std::endl;
-        else {
-            if (XML::Parser::elementExists(temp,"name")) {
-                temp2 = XML::Parser::getElement(temp,"name");
-                name = XML::Parser::getElementContent(temp2);
-            } else name = ""; // Fixed bug by adding this.
-            positions.push_back(nextPos);
-            positionNames.push_back(name);
-            oss << "Position added: " << nextPos.toString() << std::endl;
-            ++num;
-            prevPos = nextPos;
+        newPostion = checkErrors(fileData);
+        lat = XML::Parser::getElementAttribute(newPostion, "lat");
+        lon = XML::Parser::getElementAttribute(newPostion, "lon");
+        newPostion = XML::Parser::getElementContent(newPostion);
+
+        if (XML::Parser::elementExists(newPostion, "ele")) {
+            ele = XML::Parser::getElementContent(XML::Parser::getElement(newPostion, "ele"));
+            positions.push_back(Position(lat,lon,ele));
+        } else {
+            positions.push_back(Position(lat,lon));
         }
+
+        if (positions.size() > 1 && areSameLocation(positions.back(), positions.at(positions.size()-2))){
+            oss << "Position ignored: " << positions.back().toString() << std::endl;
+            positions.pop_back();
+        } else {
+            if (XML::Parser::elementExists(newPostion,"name")) {
+                name = XML::Parser::getElementContent(XML::Parser::getElement(newPostion,"name"));
+            }
+            positionNames.push_back(name);
+            oss << "Position added: " << positions.back().toString() << std::endl;
+            ++num;
+        }
+
     }
     oss << num << " positions added." << std::endl;
     routeLength = 0;
