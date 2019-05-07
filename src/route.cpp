@@ -274,8 +274,6 @@ std::string Route::readFileData(std::string fileName, std::ostringstream & repor
     std::ostringstream fileStringStream;
     std::string line;
 
-    // Get file data
-
     std::ifstream file(fileName);
     if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
     reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
@@ -284,6 +282,13 @@ std::string Route::readFileData(std::string fileName, std::ostringstream & repor
     }
 
     return fileStringStream.str();
+}
+
+void Route::checkElementsExsists(std::string fileData, std::vector<std::string> elements)
+{
+    for (int i = 0; i < elements.size(); ++i){
+        if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
+    }
 }
 
 Route::Route(std::string fileName, bool isFileName, metres granularity)
@@ -302,11 +307,9 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         fileData = readFileData(fileName, reportStringStream);
     }
 
-
     // Checks if elements gpx or rte exist
-    for (int i = 0; i < elements.size(); ++i) {
-        if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
-    }
+    checkElementsExsists(fileData, elements);
+
     gpsData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements.back()));
     if (XML::Parser::elementExists(gpsData, "name")) {
         routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));

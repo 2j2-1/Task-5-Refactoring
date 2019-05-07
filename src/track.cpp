@@ -96,39 +96,47 @@ Track::Track(std::string source, bool isFileName, metres granularity)
     std::string mergedTrkSegs,trkseg,lat,lon,ele,name,time,temp,temp2;
     metres deltaH,deltaV;
     seconds startTime, currentTime, timeElapsed;
-    std::ostringstream oss,oss2;
+    std::ostringstream oss, reportStringStream;
     unsigned int num;
     this->granularity = granularity;
-
+    std::vector<std::string> elemetents = {"gpx", "trk"};
 
     // Get file data
+    std::string fileData;
     if (isFileName){
-        source = readFileData(source, oss2);
+        fileData = readFileData(source, reportStringStream);
     }
 
 
+    /*if (! XML::Parser::elementExists(fileData,"gpx")) throw std::domain_error("No 'gpx' element.");
+    temp = XML::Parser::getElement(fileData, "gpx");
+    fileData = XML::Parser::getElementContent(temp);
+    if (! XML::Parser::elementExists(fileData,"trk")) throw std::domain_error("No 'trk' element.");
+    temp = XML::Parser::getElement(fileData, "trk");
+    fileData = XML::Parser::getElementContent(temp);*/
 
-    if (! XML::Parser::elementExists(source,"gpx")) throw std::domain_error("No 'gpx' element.");
-    temp = XML::Parser::getElement(source, "gpx");
-    source = XML::Parser::getElementContent(temp);
-    if (! XML::Parser::elementExists(source,"trk")) throw std::domain_error("No 'trk' element.");
-    temp = XML::Parser::getElement(source, "trk");
-    source = XML::Parser::getElementContent(temp);
-    if (XML::Parser::elementExists(source, "name")) {
-        temp = XML::Parser::getAndEraseElement(source, "name");
+    for (std::string element : elemetents)
+    {
+        if (! XML::Parser::elementExists(fileData,element)) throw std::domain_error("No '" + element + "' element.");
+        temp = XML::Parser::getElement(fileData, element);
+        fileData = XML::Parser::getElementContent(temp);
+    }
+
+    if (XML::Parser::elementExists(fileData, "name")) {
+        temp = XML::Parser::getAndEraseElement(fileData, "name");
         routeName = XML::Parser::getElementContent(temp);
         oss << "Track name is: " << routeName << std::endl;
     }
-    while (XML::Parser::elementExists(source, "trkseg")) {
-        temp = XML::Parser::getAndEraseElement(source, "trkseg");
+    while (XML::Parser::elementExists(fileData, "trkseg")) {
+        temp = XML::Parser::getAndEraseElement(fileData, "trkseg");
         trkseg = XML::Parser::getElementContent(temp);
         XML::Parser::getAndEraseElement(trkseg, "name");
         mergedTrkSegs += trkseg;
     }
-    if (! mergedTrkSegs.empty()) source = mergedTrkSegs;
+    if (! mergedTrkSegs.empty()) fileData = mergedTrkSegs;
     num = 0;
-    if (! XML::Parser::elementExists(source,"trkpt")) throw std::domain_error("No 'trkpt' element.");
-    temp = XML::Parser::getAndEraseElement(source, "trkpt");
+    if (! XML::Parser::elementExists(fileData,"trkpt")) throw std::domain_error("No 'trkpt' element.");
+    temp = XML::Parser::getAndEraseElement(fileData, "trkpt");
     if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
     if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
     lat = XML::Parser::getElementAttribute(temp, "lat");
@@ -159,8 +167,8 @@ Track::Track(std::string source, bool isFileName, metres granularity)
     time = XML::Parser::getElementContent(temp2);
     startTime = currentTime = stringToTime(time);
     Position prevPos = positions.back(), nextPos = positions.back();
-    while (XML::Parser::elementExists(source, "trkpt")) {
-        temp = XML::Parser::getAndEraseElement(source, "trkpt");
+    while (XML::Parser::elementExists(fileData, "trkpt")) {
+        temp = XML::Parser::getAndEraseElement(fileData, "trkpt");
         if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
         if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
         lat = XML::Parser::getElementAttribute(temp, "lat");
