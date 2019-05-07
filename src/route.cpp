@@ -275,7 +275,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
     std::vector<std::string> elements ={"gpx","rte"};
     metres deltaH,deltaV;
     std::ostringstream oss,oss2;
-    unsigned int num;
+    unsigned int numOfPostions;
     this->granularity = granularity;
     std::string fileData;
     std::string gpsData;
@@ -301,7 +301,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         oss << "Route name is: " << routeName << std::endl;
     }
 
-    num = 0;
+    numOfPostions = 0;
 
     while (XML::Parser::elementExists(gpsData, "rtept")) {
         newPostion = checkErrors(gpsData);
@@ -325,13 +325,13 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
             }
             positionNames.push_back(name);
             oss << "Position added: " << positions.back().toString() << std::endl;
-            ++num;
+            ++numOfPostions;
         }
 
     }
-    oss << num << " positions added." << std::endl;
+    oss << numOfPostions << " positions added." << std::endl;
     routeLength = 0;
-    for (unsigned int i = 1; i < num; ++i ) {
+    for (unsigned int i = 1; i < numOfPostions; ++i ) {
         deltaH = Position::distanceBetween(positions[i-1], positions[i]);
         deltaV = positions[i-1].elevation() - positions[i].elevation();
         routeLength += sqrt(pow(deltaH,2) + pow(deltaV,2));
