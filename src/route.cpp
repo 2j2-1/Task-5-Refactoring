@@ -277,9 +277,10 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
     std::ostringstream fileStringStream;
     metres deltaH = 0;
     metres deltaV = 0;
-    unsigned int numOfPostions;
+    unsigned int numOfPostions = 0;
     this->granularity = granularity;
 
+    // Get file data
     if (isFileName){
         std::ifstream file(fileName);
         if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
@@ -290,6 +291,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         fileData = fileStringStream.str();
     }
 
+    // Checks if elements gpx or rte exist
     for (int i = 0; i < elements.size(); ++i) {
         if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
     }
@@ -298,8 +300,6 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));
         reportStringStream << "Route name is: " << routeName << std::endl;
     }
-
-    numOfPostions = 0;
 
     while (XML::Parser::elementExists(gpsData, "rtept")) {
         newPostion = checkErrors(gpsData);
