@@ -138,30 +138,30 @@ Track::Track(std::string source, bool isFileName, metres granularity)
     lon = XML::Parser::getElementAttribute(temp, "lon");
     temp = XML::Parser::getElementContent(temp);
     if (XML::Parser::elementExists(temp, "ele")) {
-        temp2 = XML::Parser::getElement(temp, "ele");
-        ele = XML::Parser::getElementContent(temp2);
-        Position startPos = Position(lat,lon,ele);
-        positions.push_back(startPos);
-        oss << "Start position added: " << startPos.toString() << std::endl;
+        ele = XML::Parser::getElementContent(XML::Parser::getElement(temp, "ele"));
+
+        positions.push_back(Position(lat,lon,ele));
+        oss << "Start position added: " << positions.back().toString() << std::endl;
         ++num;
     } else {
-        Position startPos = Position(lat,lon);
-        positions.push_back(startPos);
-        oss << "Start position added: " << startPos.toString() << std::endl;
+        positions.push_back(Position(lat,lon));
+        oss << "Start position added: " << positions.back().toString() << std::endl;
         ++num;
     }
     if (XML::Parser::elementExists(temp,"name")) {
-        temp2 = XML::Parser::getElement(temp,"name");
-        name = XML::Parser::getElementContent(temp2);
+        name = XML::Parser::getElementContent(XML::Parser::getElement(temp,"name"));
     }
     positionNames.push_back(name);
     arrived.push_back(0);
     departed.push_back(0);
-    if (! XML::Parser::elementExists(temp,"time")) throw std::domain_error("No 'time' element.");
-    temp2 = XML::Parser::getElement(temp,"time");
-    time = XML::Parser::getElementContent(temp2);
-    startTime = currentTime = stringToTime(time);
-    Position prevPos = positions.back(), nextPos = positions.back();
+
+    if (! XML::Parser::elementExists(temp,"time")){
+        throw std::domain_error("No 'time' element.");
+    }
+
+    startTime = stringToTime(XML::Parser::getElementContent(XML::Parser::getElement(temp,"time")));
+
+
     while (XML::Parser::elementExists(fileData, "trkpt")) {
         temp = XML::Parser::getAndEraseElement(fileData, "trkpt");
         if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
@@ -172,30 +172,29 @@ Track::Track(std::string source, bool isFileName, metres granularity)
         if (XML::Parser::elementExists(temp, "ele")) {
             temp2 = XML::Parser::getElement(temp, "ele");
             ele = XML::Parser::getElementContent(temp2);
-            nextPos = Position(lat,lon,ele);
-        } else nextPos = Position(lat,lon);
+            positions.push_back(Position(lat,lon,ele));
+        } else positions.push_back(Position(lat,lon));;
         if (! XML::Parser::elementExists(temp,"time")) throw std::domain_error("No 'time' element.");
-        temp2 = XML::Parser::getElement(temp,"time");
-        time = XML::Parser::getElementContent(temp2);
-        currentTime = stringToTime(time);
-        if (areSameLocation(nextPos, prevPos)) {
+
+        currentTime = stringToTime(XML::Parser::getElementContent(XML::Parser::getElement(temp,"time")));
+
+        if (positions.size()>1 && areSameLocation(positions.back(), positions.at(positions.size()-2))) {
             // If we're still at the same location, then we haven't departed yet.
             departed.back() = currentTime - startTime;
-            oss << "Position ignored: " << nextPos.toString() << std::endl;
+            oss << "Position ignored: " << positions.back().toString() << std::endl;
+            positions.pop_back();
         } else {
             if (XML::Parser::elementExists(temp,"name")) {
                 temp2 = XML::Parser::getElement(temp,"name");
                 name = XML::Parser::getElementContent(temp2);
             } else name = ""; // Fixed bug by adding this.
-            positions.push_back(nextPos);
             positionNames.push_back(name);
             timeElapsed = currentTime - startTime;
             arrived.push_back(timeElapsed);
             departed.push_back(timeElapsed);
-            oss << "Position added: " << nextPos.toString() << std::endl;
+            oss << "Position added: " << positions.back().toString() << std::endl;
             oss << " at time: " << std::to_string(timeElapsed) << std::endl;
             ++num;
-            prevPos = nextPos;
         }
     }
     oss << num << " positions added." << std::endl;
