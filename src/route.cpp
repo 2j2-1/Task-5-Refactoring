@@ -275,14 +275,14 @@ std::string Route::readFileData(std::string fileName, std::ostringstream & repor
     std::string line;
 
     // Get file data
-    if (true){
-        std::ifstream file(fileName);
-        if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
-        reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
-        while (getline(file, line)) {
-            fileStringStream << line << std::endl;
-        }
+
+    std::ifstream file(fileName);
+    if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
+    reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
+    while (getline(file, line)) {
+        fileStringStream << line << std::endl;
     }
+
     return fileStringStream.str();
 }
 
@@ -298,7 +298,10 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
     this->granularity = granularity;
 
     if (isFileName)
-    fileData = readFileData(fileName, reportStringStream);
+    {
+        fileData = readFileData(fileName, reportStringStream);
+    }
+
 
     // Checks if elements gpx or rte exist
     for (int i = 0; i < elements.size(); ++i) {
