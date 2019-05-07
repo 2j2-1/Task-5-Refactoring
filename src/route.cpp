@@ -293,9 +293,8 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
 
     for (int i = 0; i < elements.size(); ++i) {
         if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
-        gpsData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements[i]));
     }
-
+    gpsData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements.back()));
     if (XML::Parser::elementExists(gpsData, "name")) {
         routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));
         oss << "Route name is: " << routeName << std::endl;
@@ -307,7 +306,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         newPostion = checkErrors(gpsData);
         lat = XML::Parser::getElementAttribute(newPostion, "lat");
         lon = XML::Parser::getElementAttribute(newPostion, "lon");
-        newPostion = XML::Parser::getElementContent(newPostion);
+        //newPostion = XML::Parser::getElementContent(newPostion);
 
         if (XML::Parser::elementExists(newPostion, "ele")) {
             ele = XML::Parser::getElementContent(XML::Parser::getElement(newPostion, "ele"));
