@@ -271,24 +271,23 @@ std::string checkErrors(std::string& gpsData){
 
 Route::Route(std::string fileName, bool isFileName, metres granularity)
 {
-    std::string lat,lon,ele,name,line,newPostion;
+    std::string lat,lon,ele,name,line,newPostion,gpsData,fileData;
     std::vector<std::string> elements ={"gpx","rte"};
-    metres deltaH,deltaV;
-    std::ostringstream oss,oss2;
+    std::ostringstream reportStringStream;
+    std::ostringstream fileStringStream;
+    metres deltaH = 0;
+    metres deltaV = 0;
     unsigned int numOfPostions;
     this->granularity = granularity;
-    std::string fileData;
-    std::string gpsData;
 
     if (isFileName){
         std::ifstream file(fileName);
         if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
-        oss << "Source file '" << fileName << "' opened okay." << std::endl;
-        while (file.good()) {
-            getline(file, line);
-            oss2 << line << std::endl;
+        reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
+        while (getline(file, line)) {
+            fileStringStream << line << std::endl;
         }
-        fileData = oss2.str();
+        fileData = fileStringStream.str();
     }
 
     for (int i = 0; i < elements.size(); ++i) {
@@ -297,7 +296,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
     gpsData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements.back()));
     if (XML::Parser::elementExists(gpsData, "name")) {
         routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));
-        oss << "Route name is: " << routeName << std::endl;
+        reportStringStream << "Route name is: " << routeName << std::endl;
     }
 
     numOfPostions = 0;
@@ -306,7 +305,6 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         newPostion = checkErrors(gpsData);
         lat = XML::Parser::getElementAttribute(newPostion, "lat");
         lon = XML::Parser::getElementAttribute(newPostion, "lon");
-        //newPostion = XML::Parser::getElementContent(newPostion);
 
         if (XML::Parser::elementExists(newPostion, "ele")) {
             ele = XML::Parser::getElementContent(XML::Parser::getElement(newPostion, "ele"));
@@ -316,26 +314,26 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
         }
 
         if (positions.size() > 1 && areSameLocation(positions.back(), positions.at(positions.size()-2))){
-            oss << "Position ignored: " << positions.back().toString() << std::endl;
+            reportStringStream << "Position ignored: " << positions.back().toString() << std::endl;
             positions.pop_back();
         } else {
             if (XML::Parser::elementExists(newPostion,"name")) {
                 name = XML::Parser::getElementContent(XML::Parser::getElement(newPostion,"name"));
             }
             positionNames.push_back(name);
-            oss << "Position added: " << positions.back().toString() << std::endl;
+            reportStringStream << "Position added: " << positions.back().toString() << std::endl;
             ++numOfPostions;
         }
 
     }
-    oss << numOfPostions << " positions added." << std::endl;
+    reportStringStream << numOfPostions << " positions added." << std::endl;
     routeLength = 0;
     for (unsigned int i = 1; i < numOfPostions; ++i ) {
         deltaH = Position::distanceBetween(positions[i-1], positions[i]);
         deltaV = positions[i-1].elevation() - positions[i].elevation();
         routeLength += sqrt(pow(deltaH,2) + pow(deltaV,2));
     }
-    report = oss.str();
+    report = reportStringStream.str();
 }
 
 void Route::setGranularity(metres granularity)
