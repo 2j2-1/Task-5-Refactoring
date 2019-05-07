@@ -269,27 +269,36 @@ std::string checkErrors(std::string& gpsData){
     return newPostion;
 }
 
-Route::Route(std::string fileName, bool isFileName, metres granularity)
+std::string Route::readFileData(std::string fileName, std::ostringstream & reportStringStream)
 {
-    std::string lat,lon,ele,name,line,newPostion,gpsData,fileData;
-    std::vector<std::string> elements ={"gpx","rte"};
-    std::ostringstream reportStringStream;
     std::ostringstream fileStringStream;
-    metres deltaH = 0;
-    metres deltaV = 0;
-    unsigned int numOfPostions = 0;
-    this->granularity = granularity;
+    std::string line;
 
     // Get file data
-    if (isFileName){
+    if (true){
         std::ifstream file(fileName);
         if (! file.good()) throw std::invalid_argument("Error opening source file '" + fileName + "'.");
         reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
         while (getline(file, line)) {
             fileStringStream << line << std::endl;
         }
-        fileData = fileStringStream.str();
     }
+    return fileStringStream.str();
+}
+
+Route::Route(std::string fileName, bool isFileName, metres granularity)
+{
+    std::string lat,lon,ele,name,line,newPostion,gpsData,fileData;
+    std::vector<std::string> elements ={"gpx","rte"};
+    std::ostringstream reportStringStream;
+   // std::ostringstream fileStringStream;
+    metres deltaH = 0;
+    metres deltaV = 0;
+    unsigned int numOfPostions = 0;
+    this->granularity = granularity;
+
+    if (isFileName)
+    fileData = readFileData(fileName, reportStringStream);
 
     // Checks if elements gpx or rte exist
     for (int i = 0; i < elements.size(); ++i) {

@@ -99,16 +99,15 @@ Track::Track(std::string source, bool isFileName, metres granularity)
     std::ostringstream oss,oss2;
     unsigned int num;
     this->granularity = granularity;
-    if (isFileName) {
-        std::ifstream fs(source);
-        if (! fs.good()) throw std::invalid_argument("Error opening source file '" + source + "'.");
-        oss << "Source file '" << source << "' opened okay." << std::endl;
-        while (fs.good()) {
-            getline(fs, temp);
-            oss2 << temp << std::endl;
-        }
-        source = oss2.str();
+
+
+    // Get file data
+    if (isFileName){
+        source = readFileData(source, oss2);
     }
+
+
+
     if (! XML::Parser::elementExists(source,"gpx")) throw std::domain_error("No 'gpx' element.");
     temp = XML::Parser::getElement(source, "gpx");
     source = XML::Parser::getElementContent(temp);

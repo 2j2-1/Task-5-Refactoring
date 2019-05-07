@@ -101,6 +101,7 @@ namespace GPS
       std::string routeName;
       std::vector<Position> positions;
       std::vector<std::string> positionNames;
+      std::string readFileData(std::string fileName, std::ostringstream & reportStringStream);
 
       std::string report;
 
