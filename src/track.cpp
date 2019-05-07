@@ -97,7 +97,7 @@ Track::Track(std::string source, bool isFileName, metres granularity)
     metres deltaH,deltaV;
     seconds startTime, currentTime, timeElapsed;
     std::ostringstream oss, reportStringStream;
-    unsigned int num;
+    unsigned int num = 0;
     this->granularity = granularity;
     std::vector<std::string> elemetents = {"gpx", "trk"};
 
@@ -107,14 +107,6 @@ Track::Track(std::string source, bool isFileName, metres granularity)
         fileData = readFileData(source, reportStringStream);
     }
 
-
-    /*if (! XML::Parser::elementExists(fileData,"gpx")) throw std::domain_error("No 'gpx' element.");
-    temp = XML::Parser::getElement(fileData, "gpx");
-    fileData = XML::Parser::getElementContent(temp);
-    if (! XML::Parser::elementExists(fileData,"trk")) throw std::domain_error("No 'trk' element.");
-    temp = XML::Parser::getElement(fileData, "trk");
-    fileData = XML::Parser::getElementContent(temp);*/
-
     for (std::string element : elemetents)
     {
         if (! XML::Parser::elementExists(fileData,element)) throw std::domain_error("No '" + element + "' element.");
@@ -123,22 +115,25 @@ Track::Track(std::string source, bool isFileName, metres granularity)
     }
 
     if (XML::Parser::elementExists(fileData, "name")) {
-        temp = XML::Parser::getAndEraseElement(fileData, "name");
-        routeName = XML::Parser::getElementContent(temp);
+        routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "name"));
         oss << "Track name is: " << routeName << std::endl;
     }
+
+
     while (XML::Parser::elementExists(fileData, "trkseg")) {
-        temp = XML::Parser::getAndEraseElement(fileData, "trkseg");
-        trkseg = XML::Parser::getElementContent(temp);
+        trkseg = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "trkseg"));
         XML::Parser::getAndEraseElement(trkseg, "name");
         mergedTrkSegs += trkseg;
     }
-    if (! mergedTrkSegs.empty()) fileData = mergedTrkSegs;
-    num = 0;
-    if (! XML::Parser::elementExists(fileData,"trkpt")) throw std::domain_error("No 'trkpt' element.");
-    temp = XML::Parser::getAndEraseElement(fileData, "trkpt");
-    if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
-    if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
+
+
+    if (! mergedTrkSegs.empty())
+    {
+        fileData = mergedTrkSegs;
+    }
+
+    temp = checkErrors(fileData, "trkpt");
+
     lat = XML::Parser::getElementAttribute(temp, "lat");
     lon = XML::Parser::getElementAttribute(temp, "lon");
     temp = XML::Parser::getElementContent(temp);

@@ -260,10 +260,10 @@ std::string Route::buildReport() const
     return report;
 }
 
-std::string checkErrors(std::string& gpsData){
+std::string Route::checkErrors(std::string& gpsData, std::string fileType){
     std::string newPostion;
-    if (! XML::Parser::elementExists(gpsData,"rtept")) throw std::domain_error("No 'rtept' element.");
-    newPostion = XML::Parser::getAndEraseElement(gpsData, "rtept");
+    if (! XML::Parser::elementExists(gpsData, fileType)) throw std::domain_error("No '" + fileType +"' element.");
+    newPostion = XML::Parser::getAndEraseElement(gpsData, fileType);
     if (! XML::Parser::attributeExists(newPostion,"lat")) throw std::domain_error("No 'lat' attribute.");
     if (! XML::Parser::attributeExists(newPostion,"lon")) throw std::domain_error("No 'lon' attribute.");
     return newPostion;
@@ -317,7 +317,7 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
     }
 
     while (XML::Parser::elementExists(gpsData, "rtept")) {
-        newPostion = checkErrors(gpsData);
+        newPostion = checkErrors(gpsData, "rtept");
         lat = XML::Parser::getElementAttribute(newPostion, "lat");
         lon = XML::Parser::getElementAttribute(newPostion, "lon");
 
