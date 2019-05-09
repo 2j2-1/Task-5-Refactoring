@@ -96,16 +96,19 @@ namespace GPS
       Route() {} // Only called by Track constructor.
 
       metres granularity;
-
+      std::ostringstream reportStringStream;
       metres routeLength;
       std::string routeName;
       std::vector<Position> positions;
       std::vector<std::string> positionNames;
-      std::string readFileData(std::string fileName, std::ostringstream & reportStringStream);
+      std::string readFileData(std::string fileName);
       Position getNewPostion(std::string newPostion);
+      std::string getName(std::string newPostion);
       void checkElementsExsists(std::string fileData, std::vector<std::string> elements);
       std::string checkErrors(std::string& gpsData, std::string fileType);
-
+      void setRouteLength();
+      void addPostion(std::string newPostion);
+      std::string setupFileData(std::vector<std::string> elements,std::string fileData);
       std::string report;
 
       /* Two Positions are considered to be the same location is they are less than

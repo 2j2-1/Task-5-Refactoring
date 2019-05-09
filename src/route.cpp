@@ -262,23 +262,29 @@ std::string Route::buildReport() const
 
 std::string Route::checkErrors(std::string& gpsData, std::string fileType){
     std::string newPostion;
-    if (! XML::Parser::elementExists(gpsData, fileType)) throw std::domain_error("No '" + fileType +"' element.");
+    if (! XML::Parser::elementExists(gpsData, fileType))
+        throw std::domain_error("No '" + fileType +"' element.");
+
     newPostion = XML::Parser::getAndEraseElement(gpsData, fileType);
-    if (! XML::Parser::attributeExists(newPostion,"lat")) throw std::domain_error("No 'lat' attribute.");
-    if (! XML::Parser::attributeExists(newPostion,"lon")) throw std::domain_error("No 'lon' attribute.");
+
+    if (! XML::Parser::attributeExists(newPostion,"lat"))
+        throw std::domain_error("No 'lat' attribute.");
+    if (! XML::Parser::attributeExists(newPostion,"lon"))
+        throw std::domain_error("No 'lon' attribute.");
+
     return newPostion;
 }
 
-std::string Route::readFileData(std::string fileName, std::ostringstream & reportStringStream)
+std::string Route::readFileData(std::string fileName)
 {
     std::ostringstream fileStringStream;
     std::string line;
-
     std::ifstream file(fileName);
+
     if (! file.good()) {
         throw std::invalid_argument("Error opening source file '" + fileName + "'.");
     }
-    reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
+
     while (getline(file, line)) {
         fileStringStream << line << std::endl;
     }
@@ -286,10 +292,18 @@ std::string Route::readFileData(std::string fileName, std::ostringstream & repor
     return fileStringStream.str();
 }
 
-void Route::checkElementsExsists(std::string fileData, std::vector<std::string> elements){
+std::string Route::setupFileData(std::vector<std::string> elements,std::string fileData){
+
     for (int i = 0; i < elements.size(); ++i){
         if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
+        fileData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements[i]));
     }
+    while (XML::Parser::elementExists(fileData, "trkseg")) {
+        std::string trkseg = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "trkseg"));
+        XML::Parser::getAndEraseElement(trkseg, "name");
+        fileData += trkseg;
+    }
+    return fileData;
 }
 
 Position Route::getNewPostion(std::string newPostion){
@@ -303,33 +317,48 @@ Position Route::getNewPostion(std::string newPostion){
         return Position(lat,lon);
 }
 
-std::string getName(std::string newPostion){
+std::string Route::getName(std::string newPostion){
     if (XML::Parser::elementExists(newPostion,"name")) {
         return XML::Parser::getElementContent(XML::Parser::getElement(newPostion,"name"));
     }
     return "";
 }
 
-Route::Route(std::string fileName, bool isFileName, metres granularity)
-{
-    std::string newPostion,gpsData,fileData;
+void Route::setRouteLength(){
+    metres deltaH,deltaV;
+    routeLength = 0;
+    for (unsigned int i = 1; i < positions.size(); ++i ) {
+        deltaH = Position::distanceBetween(positions[i-1], positions[i]);
+        deltaV = positions[i-1].elevation() - positions[i].elevation();
+        routeLength += sqrt(pow(deltaH,2) + pow(deltaV,2));
+    }
+}
+
+void Route::addPostion(std::string newPostion){
+    positions.push_back(getNewPostion(newPostion));
+
+    if (positions.size() > 1 && areSameLocation(positions.back(), positions.at(positions.size()-2))){
+        reportStringStream << "Position ignored: " << positions.back().toString() << std::endl;
+        positions.pop_back();
+    } else {
+        positionNames.push_back(getName(newPostion));
+        reportStringStream << "Position added: " << positions.back().toString() << std::endl;
+    }
+}
+
+Route::Route(std::string fileName, bool isFileName, metres granularity){
+    std::string newPostion;
+    std::string gpsData;
+    std::string fileData;
     std::vector<std::string> elements ={"gpx","rte"};
-    std::ostringstream reportStringStream;
-   // std::ostringstream fileStringStream;
-    metres deltaH = 0;
-    metres deltaV = 0;
-    unsigned int numOfPostions = 0;
     this->granularity = granularity;
 
-    if (isFileName)
-    {
-        fileData = readFileData(fileName, reportStringStream);
+    if (isFileName){
+        fileData = readFileData(fileName);
+        reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
     }
 
-    // Checks if elements gpx or rte exist
-    checkElementsExsists(fileData, elements);
-
-    gpsData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements.back()));
+    gpsData = setupFileData(elements,fileData);
 
     if (XML::Parser::elementExists(gpsData, "name")) {
         routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));
@@ -338,26 +367,11 @@ Route::Route(std::string fileName, bool isFileName, metres granularity)
 
     while (XML::Parser::elementExists(gpsData, "rtept")) {
         newPostion = checkErrors(gpsData, "rtept");
-
-        positions.push_back(getNewPostion(newPostion));
-
-        if (positions.size() > 1 && areSameLocation(positions.back(), positions.at(positions.size()-2))){
-            reportStringStream << "Position ignored: " << positions.back().toString() << std::endl;
-            positions.pop_back();
-        } else {
-            positionNames.push_back(getName(newPostion));
-            reportStringStream << "Position added: " << positions.back().toString() << std::endl;
-            ++numOfPostions;
-        }
-
+        addPostion(newPostion);
     }
-    reportStringStream << numOfPostions << " positions added." << std::endl;
-    routeLength = 0;
-    for (unsigned int i = 1; i < numOfPostions; ++i ) {
-        deltaH = Position::distanceBetween(positions.at(i-1), positions.at(i));
-        deltaV = positions[i-1].elevation() - positions[i].elevation();
-        routeLength += sqrt(pow(deltaH,2) + pow(deltaV,2));
-    }
+
+    reportStringStream << positions.size() << " positions added." << std::endl;
+    setRouteLength();
     report = reportStringStream.str();
 }
 
