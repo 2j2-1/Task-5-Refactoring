@@ -125,27 +125,27 @@ void Track::addPostion(std::string newPostion){
     }
 }
 
-Track::Track(std::string source, bool isFileName, metres granularity){
+Track::Track(std::string fileName, bool isFileName, metres granularity){
     std::string newPostion;
+    std::string gpsData;
     std::string fileData;
-    seconds currentTime = 0;
-    this->granularity = granularity;
     std::vector<std::string> elements = {"gpx", "trk"};
+    this->granularity = granularity;
 
     if (isFileName){
-        fileData = readFileData(source);
-        reportStringStream << "Source file '" << source << "' opened okay." << std::endl;
+        fileData = readFileData(fileName);
+        reportStringStream << "Source file '" << fileName << "' opened okay." << std::endl;
     }
 
-    fileData = setupFileData(elements,fileData);
+    gpsData = setupFileData(elements,fileData);
 
-    if (XML::Parser::elementExists(fileData, "name")) {
-        routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "name"));
+    if (XML::Parser::elementExists(gpsData, "name")) {
+        routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(gpsData, "name"));
         reportStringStream << "Track name is: " << routeName << std::endl;
     }
 
-    while (XML::Parser::elementExists(fileData, "trkpt")) {
-        newPostion = checkErrors(fileData, "trkpt");
+    while (XML::Parser::elementExists(gpsData, "trkpt")) {
+        newPostion = checkErrors(gpsData, "trkpt");
         addPostion(newPostion);
 
     }
