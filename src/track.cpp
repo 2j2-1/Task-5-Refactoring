@@ -90,121 +90,89 @@ speed Track::maxRateOfDescent() const
     return ms;
 }
 
-Track::Track(std::string source, bool isFileName, metres granularity)
-{
 
-    std::string mergedTrkSegs,trkseg,lat,lon,ele,name,time,temp,temp2;
-    metres deltaH,deltaV;
-    seconds startTime, currentTime, timeElapsed;
-    std::ostringstream oss, reportStringStream;
-    unsigned int num = 0;
-    this->granularity = granularity;
-    std::vector<std::string> elemetents = {"gpx", "trk"};
 
-    // Get file data
-    std::string fileData;
-    if (isFileName){
-        fileData = readFileData(source, reportStringStream);
-    }
 
-    for (std::string element : elemetents)
-    {
+std::string setupFileData(std::vector<std::string> elements,std::string fileData){
+    std::string trkseg;
+    for (std::string element : elements){
         if (! XML::Parser::elementExists(fileData,element)) throw std::domain_error("No '" + element + "' element.");
-        temp = XML::Parser::getElement(fileData, element);
-        fileData = XML::Parser::getElementContent(temp);
+        fileData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, element));
     }
-
-    if (XML::Parser::elementExists(fileData, "name")) {
-        routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "name"));
-        oss << "Track name is: " << routeName << std::endl;
-    }
-
 
     while (XML::Parser::elementExists(fileData, "trkseg")) {
         trkseg = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "trkseg"));
         XML::Parser::getAndEraseElement(trkseg, "name");
-        mergedTrkSegs += trkseg;
+        fileData += trkseg;
     }
 
+    return fileData;
+}
 
-    if (! mergedTrkSegs.empty())
-    {
-        fileData = mergedTrkSegs;
+
+Track::Track(std::string source, bool isFileName, metres granularity)
+{
+
+
+    std::string newPostion;
+    std::string fileData;
+    metres deltaH,deltaV;
+    seconds startTime = 0;
+    seconds currentTime = 0;
+    seconds timeElapsed = 0;
+    std::ostringstream reportStringStream;
+    unsigned int num = 1;
+    this->granularity = granularity;
+    std::vector<std::string> elements = {"gpx", "trk"};
+
+    // Get file data
+    
+    if (isFileName){
+        fileData = readFileData(source, reportStringStream);
     }
 
-    temp = checkErrors(fileData, "trkpt");
+    fileData = setupFileData(elements,fileData);
 
-    lat = XML::Parser::getElementAttribute(temp, "lat");
-    lon = XML::Parser::getElementAttribute(temp, "lon");
-    temp = XML::Parser::getElementContent(temp);
-    if (XML::Parser::elementExists(temp, "ele")) {
-        ele = XML::Parser::getElementContent(XML::Parser::getElement(temp, "ele"));
-
-        positions.push_back(Position(lat,lon,ele));
-        oss << "Start position added: " << positions.back().toString() << std::endl;
-        ++num;
-    } else {
-        positions.push_back(Position(lat,lon));
-        oss << "Start position added: " << positions.back().toString() << std::endl;
-        ++num;
+    if (XML::Parser::elementExists(fileData, "name")) {
+        routeName = XML::Parser::getElementContent(XML::Parser::getAndEraseElement(fileData, "name"));
+        reportStringStream << "Track name is: " << routeName << std::endl;
     }
-    if (XML::Parser::elementExists(temp,"name")) {
-        name = XML::Parser::getElementContent(XML::Parser::getElement(temp,"name"));
-    }
-    positionNames.push_back(name);
-    arrived.push_back(0);
-    departed.push_back(0);
-
-    if (! XML::Parser::elementExists(temp,"time")){
-        throw std::domain_error("No 'time' element.");
-    }
-
-    startTime = stringToTime(XML::Parser::getElementContent(XML::Parser::getElement(temp,"time")));
-
 
     while (XML::Parser::elementExists(fileData, "trkpt")) {
-        temp = XML::Parser::getAndEraseElement(fileData, "trkpt");
-        if (! XML::Parser::attributeExists(temp,"lat")) throw std::domain_error("No 'lat' attribute.");
-        if (! XML::Parser::attributeExists(temp,"lon")) throw std::domain_error("No 'lon' attribute.");
-        lat = XML::Parser::getElementAttribute(temp, "lat");
-        lon = XML::Parser::getElementAttribute(temp, "lon");
-        temp = XML::Parser::getElementContent(temp);
-        if (XML::Parser::elementExists(temp, "ele")) {
-            temp2 = XML::Parser::getElement(temp, "ele");
-            ele = XML::Parser::getElementContent(temp2);
-            positions.push_back(Position(lat,lon,ele));
-        } else positions.push_back(Position(lat,lon));;
-        if (! XML::Parser::elementExists(temp,"time")) throw std::domain_error("No 'time' element.");
+        newPostion = checkErrors(fileData, "trkpt");
 
-        currentTime = stringToTime(XML::Parser::getElementContent(XML::Parser::getElement(temp,"time")));
+        positions.push_back(getNewPostion(newPostion));
+
+        if (! XML::Parser::elementExists(newPostion,"time"))
+            throw std::domain_error("No 'time' element.");
+
+        currentTime = stringToTime(XML::Parser::getElementContent(XML::Parser::getElement(newPostion,"time")));
 
         if (positions.size()>1 && areSameLocation(positions.back(), positions.at(positions.size()-2))) {
             // If we're still at the same location, then we haven't departed yet.
             departed.back() = currentTime - startTime;
-            oss << "Position ignored: " << positions.back().toString() << std::endl;
+            reportStringStream << "Position ignored: " << positions.back().toString() << std::endl;
             positions.pop_back();
         } else {
-            if (XML::Parser::elementExists(temp,"name")) {
-                temp2 = XML::Parser::getElement(temp,"name");
-                name = XML::Parser::getElementContent(temp2);
-            } else name = ""; // Fixed bug by adding this.
-            positionNames.push_back(name);
+            if (XML::Parser::elementExists(newPostion,"name")) {
+               positionNames.push_back(XML::Parser::getElementContent(XML::Parser::getElement(newPostion,"name")));
+            }
             timeElapsed = currentTime - startTime;
             arrived.push_back(timeElapsed);
             departed.push_back(timeElapsed);
-            oss << "Position added: " << positions.back().toString() << std::endl;
-            oss << " at time: " << std::to_string(timeElapsed) << std::endl;
+            reportStringStream << "Position added: " << positions.back().toString() << std::endl;
+            reportStringStream << " at time: " << std::to_string(timeElapsed) << std::endl;
             ++num;
         }
     }
-    oss << num << " positions added." << std::endl;
+    reportStringStream << num << " positions added." << std::endl;
     routeLength = 0;
     for (unsigned int i = 1; i < num; ++i ) {
         deltaH = Position::distanceBetween(positions[i-1], positions[i]);
         deltaV = positions[i-1].elevation() - positions[i].elevation();
         routeLength += sqrt(pow(deltaH,2) + pow(deltaV,2));
     }
-    report = oss.str();
+    report = reportStringStream.str();
 }
 
 void Track::setGranularity(metres granularity)

@@ -102,6 +102,7 @@ namespace GPS
       std::vector<Position> positions;
       std::vector<std::string> positionNames;
       std::string readFileData(std::string fileName, std::ostringstream & reportStringStream);
+      Position getNewPostion(std::string newPostion);
       void checkElementsExsists(std::string fileData, std::vector<std::string> elements);
       std::string checkErrors(std::string& gpsData, std::string fileType);
 
