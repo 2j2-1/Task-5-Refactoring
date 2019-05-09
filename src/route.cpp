@@ -295,7 +295,8 @@ std::string Route::readFileData(std::string fileName)
 std::string Route::setupFileData(std::vector<std::string> elements,std::string fileData){
 
     for (int i = 0; i < elements.size(); ++i){
-        if (! XML::Parser::elementExists(fileData,elements[i])) throw std::domain_error("No '" + elements[i] + "' element.");
+        if (! XML::Parser::elementExists(fileData,elements[i])) 
+            throw std::domain_error("No '" + elements[i] + "' element.");
         fileData = XML::Parser::getElementContent(XML::Parser::getElement(fileData, elements[i]));
     }
     while (XML::Parser::elementExists(fileData, "trkseg")) {
